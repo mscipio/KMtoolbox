@@ -329,7 +329,7 @@ guidata(hObject, handles);
 function roi_btn_Callback(hObject, eventdata, handles)
 
 %plotMainDataset(handles);
-externalFigureRoiSelection(hObject,handles);
+handles = externalFigureRoiSelection(hObject,handles);
 
 h = imfreehand; %position = wait(h);
 ROI = h.createMask();
@@ -797,7 +797,7 @@ function plotMainDataset(handles)
 axes(handles.plot_axes)
 imagesc(squeeze(handles.immagine(:,:,handles.idx_slice,handles.idx_time)),handles.clims),colormap(handles.cmap);
 
-function externalFigureRoiSelection(hObject, handles)
+function handles = externalFigureRoiSelection(hObject, handles)
 handles.H = figure(1);
 imagesc(squeeze(handles.immagine(:,:,handles.idx_slice,handles.idx_time)),handles.clims),colormap(handles.cmap),axis equal tight;
 guidata(hObject, handles);
