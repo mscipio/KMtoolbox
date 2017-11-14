@@ -22,7 +22,7 @@ function varargout = KMtool(varargin)
 
 % Edit the above text to modify the response to help KMtool
 
-% Last Modified by GUIDE v2.5 08-Mar-2017 10:06:31
+% Last Modified by GUIDE v2.5 14-Nov-2017 12:15:14
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -118,6 +118,11 @@ varargout{1} = handles.output;
 
 % ------------------------------ SLIDERS ----------------------------------
 function slice_slider_Callback(hObject, eventdata, handles)
+switch handles.colormap_style
+    case '2D'
+        handles = check_colormap_style(handles);
+end
+        
 handles.idx_slice=round(get(hObject,'Value'));
 set(handles.title,'String',['Time frame: ',num2str(handles.idx_time),'  |  Slice: ',num2str(handles.idx_slice)]);
 plotMainDataset(handles);
@@ -135,6 +140,13 @@ guidata(hObject, handles);
 
 
 function time_slider_Callback(hObject, eventdata, handles)
+switch handles.colormap_style
+    case '2D'
+        handles = check_colormap_style(handles);
+    case '3D'
+        handles = check_colormap_style(handles);
+end
+
 handles.idx_time=round(get(hObject,'Value'));
 set(handles.title,'String',['Time frame: ',num2str(handles.idx_time),'  |  Slice: ',num2str(handles.idx_slice)]);
 plotMainDataset(handles);
@@ -148,6 +160,38 @@ set(hObject,'max',10);
 set(hObject,'SliderStep',[1/(10-1) 1/(10-1)]);
 set(hObject,'Value',1);
 handles.idx_time=round(get(hObject,'Value'));
+guidata(hObject, handles);
+
+
+% --- Executes during object creation, after setting all properties.
+function colormap_btn_group_CreateFcn(hObject, eventdata, handles)
+selection = get(hObject,'SelectedObject');
+handles.colormap_style = selection.String;
+guidata(hObject, handles);
+
+% --- Executes when selected object is changed in colormap_btn_group.
+function colormap_btn_group_SelectionChangedFcn(hObject, eventdata, handles)
+selection = get(hObject,'String');
+handles.colormap_style = selection;
+guidata(hObject, handles);
+
+% --- Executes on button press in chk_4D.
+function chk_4D_Callback(hObject, eventdata, handles)
+handles = check_colormap_style(handles);
+plotMainDataset(handles);
+guidata(hObject, handles);
+
+% --- Executes on button press in chk_3D.
+function chk_3D_Callback(hObject, eventdata, handles)
+handles = check_colormap_style(handles);
+plotMainDataset(handles);
+guidata(hObject, handles);
+
+
+% --- Executes on button press in chk_2D.
+function chk_2D_Callback(hObject, eventdata, handles)
+handles = check_colormap_style(handles);
+plotMainDataset(handles);
 guidata(hObject, handles);
 
 function clim_slider_Callback(hObject, eventdata, handles)
@@ -257,7 +301,7 @@ elseif strcmp(handles.filetype,'.img') || strcmp(handles.filetype,'.dcm')
         ['Time frame: ',num2str(handles.idx_time),'  |  Slice: ',num2str(handles.idx_slice)]);
     set(handles.time_slider,'Value',handles.idx_time);
     set(handles.slice_slider,'Value',handles.idx_slice);
-
+    
     set(handles.clim_slider,'min',handles.clims(1)+eps);
     set(handles.clim_slider,'max',handles.clims(2));
     set(handles.clim_slider,'Value',handles.clims(2));
@@ -284,7 +328,11 @@ guidata(hObject, handles);
 % ---------------------------- COLORMAP -----------------------------------
 function colormap_Callback(hObject, eventdata, handles)
 values = cellstr(get(hObject,'String'));
-handles.cmap=values{get(hObject,'Value')};
+cmap_id = get(hObject,'Value');
+cmap_label = values{cmap_id};
+if cmap_id > 7; handles.cmap = pmkmp(128,cmap_label);
+else handles.cmap = cmap_label;
+end
 plotMainDataset(handles);
 guidata(hObject, handles);
 
@@ -413,7 +461,7 @@ if ~isempty(handles.S)
         handles.FIT.tissue = double(handles.S.TAC);
         handles.FIT.time   = handles.S.time_vec;
         handles.FIT.scant  = handles.S.scant;
-        disp(max(handles.S.scant(:)))
+%         disp(max(handles.S.scant(:)))
         
         if isfield(handles.FIT,'tissue_fit')
             handles.FIT = rmfield(handles.FIT,'tissue_fit');
@@ -621,7 +669,7 @@ switch handles.TACmodel
         set(handles.Ki_tag,'String','Ki')
         
     case {'DCE-MRI an_2TCr','DCE-MRI an_2TCi'}
-        disp(max(handles.FIT.scant(:)))
+%         disp(max(handles.FIT.scant(:)))
         [fit, params, resnorm, residual, output] = fit_dce_analytic_models (handles.FIT.tissue,handles.FIT.scant,handles.FIT.IF_params,handles.FIT.IF_fit, handles.TACmodel);
         handles.FIT.tissue_fit = fit;
         handles.FIT.tissue_params = params;
@@ -796,6 +844,32 @@ ret = round(f*n)/f;
 function plotMainDataset(handles)
 axes(handles.plot_axes)
 imagesc(squeeze(handles.immagine(:,:,handles.idx_slice,handles.idx_time)),handles.clims),colormap(handles.cmap);
+
+function handles = check_colormap_style(handles)
+switch handles.colormap_style
+    case '4D'
+        if isfield(handles,'immagine');
+            handles.clims = [min(handles.immagine(:)) max(handles.immagine(:))];
+            set(handles.clim_slider,'min',handles.clims(1)+eps);
+            set(handles.clim_slider,'max',handles.clims(2));
+            set(handles.clim_slider,'Value',handles.clims(2));
+        end
+    case '3D'
+        if isfield(handles,'immagine');
+            handles.clims = [min(min(min(handles.immagine(:,:,:,handles.idx_time)))) max(max(max(handles.immagine(:,:,:,handles.idx_time))))];
+            set(handles.clim_slider,'min',handles.clims(1)+eps);
+            set(handles.clim_slider,'max',handles.clims(2));
+            set(handles.clim_slider,'Value',handles.clims(2));
+        end
+    case '2D'
+        if isfield(handles,'immagine');
+            handles.clims = [min(min(handles.immagine(:,:,handles.idx_slice,handles.idx_time))) max(max(handles.immagine(:,:,handles.idx_slice,handles.idx_time)))];
+            set(handles.clim_slider,'min',handles.clims(1)+eps);
+            set(handles.clim_slider,'max',handles.clims(2));
+            set(handles.clim_slider,'Value',handles.clims(2));
+        end
+end
+
 
 function handles = externalFigureRoiSelection(hObject, handles)
 handles.H = figure(1);
